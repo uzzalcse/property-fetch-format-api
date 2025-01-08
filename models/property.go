@@ -84,3 +84,7 @@ type S3Response struct {
     GeoInfo   GeoInfo   `json:"GeoInfo"`
     Published bool      `json:"Published"`
 }
+
+type PropertyListResponse struct {
+    Data     []PropertyResponse `json:"data"`
+}
