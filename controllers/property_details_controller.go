@@ -1,13 +1,15 @@
 package controllers
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "time"
-    "property-fetch-format-api/models"
-    beego "github.com/beego/beego/v2/server/web"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"property-fetch-format-api/models"
+	"regexp"
+	"time"
+
+	beego "github.com/beego/beego/v2/server/web"
 )
 
 type PropertyDetailsController struct {
@@ -33,6 +35,10 @@ func NewPropertyService(baseURL string) PropertyService {
 }
 
 func (s *propertyService) FetchPropertyDetails(ctx context.Context, propertyID, languageCode string) (*models.PropertyResponse, error) {
+    // Validate property ID format using regex
+    if ok, err := regexp.MatchString(`^[A-Z]{2}-\d+$`, propertyID); !ok || err != nil {
+        return nil, fmt.Errorf("invalid property ID format")
+    }
     url := fmt.Sprintf("%s?propertyId=%s&languageCode=%s", s.baseURL, propertyID, languageCode)
     
     resultChan := make(chan *models.ExternalAPIResponse, 1)
@@ -98,16 +104,28 @@ func (c *PropertyDetailsController) GetPropertyDetails() {
         c.ServeJSON()
         return
     }
+
+    if property == nil {
+        c.Ctx.Output.SetStatus(http.StatusNotFound)
+        c.Data["json"] = map[string]string{"error": "Property not found"}
+        c.ServeJSON()
+        return
+    }
     
     c.Data["json"] = property
     c.ServeJSON()
 }
 
 func transformToPropertyResponse(apiResp *models.ExternalAPIResponse) *models.PropertyResponse {
+    // Check if the response or critical fields are nil/empty
+    if apiResp == nil || apiResp.S3.ID == "" {
+        return nil
+    }
+
     // Transform external API response to PropertyResponse
     return &models.PropertyResponse{
         ID:        apiResp.S3.ID,
-        Feed:      apiResp.S3.Feed, // Example value
+        Feed:      apiResp.S3.Feed,
         Published: apiResp.S3.Published,
         GeoInfo:   apiResp.S3.GeoInfo,
         Property:  apiResp.S3.Property,

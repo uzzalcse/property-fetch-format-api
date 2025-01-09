@@ -1,4 +1,3 @@
-// models/property.go
 package models
 
 type PropertyResponse struct {
@@ -87,4 +86,14 @@ type S3Response struct {
 
 type PropertyListResponse struct {
     Data     []PropertyResponse `json:"data"`
+}
+
+type GalleryImage struct {
+    Confidence  float64     `json:"confidence"`
+    Label       string      `json:"label"`
+    URL         string      `json:"url"`
+}
+
+type GalleryResponse struct {
+    S3Gallery map[string][]GalleryImage `json:"S3-Gallery"`
 }
