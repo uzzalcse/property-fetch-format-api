@@ -259,7 +259,6 @@ func (c *PropertyListController) GetPropertyList() {
 		c.Ctx.Output.SetStatus(http.StatusInternalServerError)
 		if writeErr := c.Ctx.Output.Body([]byte("Failed to serve JSON response")); writeErr != nil {
 			c.Ctx.Output.SetStatus(http.StatusInternalServerError)
-			// Log the error if you have a logging mechanism
 		}
 	}
 
