@@ -40,9 +40,21 @@ go run main.go
 
 ## Testing
 
-Run tests using:
+Run all tests:
 ```bash
-go test ./...
+go test -v ./tests
+```
+
+Generate coverage report:
+```bash
+go test ./... -cover
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out -o coverage.html
+```
+
+View coverage in terminal:
+```bash
+go tool cover -func=coverage.out
 ```
 
 ## Contributing
