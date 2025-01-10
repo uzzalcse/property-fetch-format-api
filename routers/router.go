@@ -15,7 +15,7 @@ func init() {
 		beego.NSRouter("/propertyList", &controllers.PropertyListController{}, "get:GetPropertyList"),
 		beego.NSNamespace("/user",
 		beego.NSRouter("/", &controllers.CreateUserController{}, "post:CreateUser"),
-		//beego.NSRouter("/:identifier", &controllers.UserController{}, "get:GetUser;put:UpdateUser;delete:DeleteUser"),
+		beego.NSRouter("/:identifier", &controllers.UserController{}, "get:GetUser;put:UpdateUser;delete:DeleteUser"),
 	),
 		
 	)
