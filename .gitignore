@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+app
 property-fetch-format-api
 coverage.html
 coverage.out

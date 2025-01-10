@@ -1,16 +1,18 @@
 package tests
 
 import (
-    "encoding/json"
-    "net/http"
-    "net/http/httptest"
-    "testing"
-    "path/filepath"
-    "runtime"
-    
-    "github.com/smartystreets/goconvey/convey"
-    beego "github.com/beego/beego/v2/server/web"
-    _ "property-fetch-format-api/routers"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"runtime"
+	"testing"
+
+	_ "property-fetch-format-api/routers"
+
+	beego "github.com/beego/beego/v2/server/web"
+	"github.com/smartystreets/goconvey/convey"
+
 )
 
 func init() {
@@ -56,7 +58,4 @@ func TestPropertyDetailsEndpoint(t *testing.T) {
         })
     })
 }
-
-
-
 

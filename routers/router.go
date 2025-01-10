@@ -13,6 +13,11 @@ func init() {
 			beego.NSRouter("/:propertyId/gallery", &controllers.PropertyGalleryController{}, "get:GetPropertyGallery"),
 		),
 		beego.NSRouter("/propertyList", &controllers.PropertyListController{}, "get:GetPropertyList"),
+		beego.NSNamespace("/user",
+		//beego.NSRouter("/", &controllers.UserController{}, "post:CreateUser"),
+		//beego.NSRouter("/:identifier", &controllers.UserController{}, "get:GetUser;put:UpdateUser;delete:DeleteUser"),
+	),
+		
 	)
 
 	// Register namespace
