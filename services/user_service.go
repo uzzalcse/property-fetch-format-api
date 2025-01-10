@@ -1,12 +1,12 @@
 package services
 
 import (
-	"fmt"
-	"regexp"
-	"strings"
+    "fmt"
+    "regexp"
+    "strings"
 
-	"property-fetch-format-api/dao"
-	"property-fetch-format-api/models"
+    "property-fetch-format-api/dao"
+    "property-fetch-format-api/models"
 )
 
 // UserService handles the business logic for user operations
@@ -30,15 +30,15 @@ func (s *UserService) CreateUser(user *models.User) error {
 // validateUser performs basic validation on the user struct
 func (s *UserService) validateUser(user *models.User) error {
     if user.Name == "" {
-        return fmt.Errorf("name is required")
+        return fmt.Errorf("validation error: name is required")
     }
 
     if user.Age <= 0 {
-        return fmt.Errorf("age must be a positive integer")
+        return fmt.Errorf("validation error: insert a positive integer for age field")
     }
 
     if !s.isValidEmail(user.Email) {
-        return fmt.Errorf("invalid email format")
+        return fmt.Errorf("validation error: invalid email format")
     }
 
     return nil
@@ -47,7 +47,7 @@ func (s *UserService) validateUser(user *models.User) error {
 // isValidEmail checks if the given email has a valid format
 func (s *UserService) isValidEmail(email string) bool {
     re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
-    return re.MatchString(email)
+    return re.MatchString(strings.ToLower(email))
 }
 
 // GetUserByIdentifier retrieves a user by ID or email
@@ -55,7 +55,7 @@ func (s *UserService) GetUserByIdentifier(identifier string) (*models.User, erro
     var user models.User
     db := dao.GetDB()
 
-    if isEmail(identifier) {
+    if s.isValidEmail(identifier) {
         if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
             return nil, fmt.Errorf("user not found")
         }
@@ -73,7 +73,7 @@ func (s *UserService) UpdateUserByIdentifier(identifier string, userUpdate *mode
     var user models.User
     db := dao.GetDB()
 
-    if isEmail(identifier) {
+    if s.isValidEmail(identifier) {
         if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
             return nil, fmt.Errorf("user not found")
         }
@@ -89,7 +89,7 @@ func (s *UserService) UpdateUserByIdentifier(identifier string, userUpdate *mode
     if userUpdate.Age > 0 {
         user.Age = userUpdate.Age
     }
-    if isEmail(userUpdate.Email) {
+    if s.isValidEmail(userUpdate.Email) {
         user.Email = userUpdate.Email
     }
 
@@ -105,7 +105,7 @@ func (s *UserService) DeleteUserByIdentifier(identifier string) error {
     var user models.User
     db := dao.GetDB()
 
-    if isEmail(identifier) {
+    if s.isValidEmail(identifier) {
         if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
             return fmt.Errorf("user not found")
         }
@@ -120,10 +120,4 @@ func (s *UserService) DeleteUserByIdentifier(identifier string) error {
     }
 
     return nil
-}
-
-// isEmail checks if the given identifier is an email
-func isEmail(identifier string) bool {
-    re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
-    return re.MatchString(strings.ToLower(identifier))
 }
