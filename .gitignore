@@ -8,6 +8,7 @@ app
 property-fetch-format-api
 coverage.html
 coverage.out
+coverage
 
 # Test binary, build with `go test -c`
 *.test
