@@ -1,123 +1,225 @@
+// user_service.go
 package services
 
 import (
     "fmt"
     "regexp"
     "strings"
+    "sync"
 
     "property-fetch-format-api/dao"
     "property-fetch-format-api/models"
 )
 
-// UserService handles the business logic for user operations
 type UserService struct{}
 
-// CreateUser creates a new user in the database
 func (s *UserService) CreateUser(user *models.User) error {
-    // Validate the user data
-    if err := s.validateUser(user); err != nil {
-        return err
+    // Check if email already exists
+    var existingUser models.User
+    if err := dao.GetDB().Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+        return fmt.Errorf("email already exists")
     }
 
-    // Create the new user in the database
-    if err := dao.GetDB().Create(user).Error; err != nil {
-        return fmt.Errorf("database error: %v", err)
-    }
+    errChan := make(chan error)
+    
+    go func() {
+        if err := s.validateUser(user); err != nil {
+            errChan <- err
+            return
+        }
 
-    return nil
+        errChan <- dao.GetDB().Create(user).Error
+    }()
+
+    return <-errChan
 }
 
-// validateUser performs basic validation on the user struct
 func (s *UserService) validateUser(user *models.User) error {
-    if user.Name == "" {
-        return fmt.Errorf("validation error: name is required")
-    }
+    var wg sync.WaitGroup
+    errChan := make(chan error, 3)
 
-    if user.Age <= 0 {
-        return fmt.Errorf("validation error: insert a positive integer for age field")
-    }
+    wg.Add(3)
+    
+    go func() {
+        defer wg.Done()
+        if user.Name == "" {
+            errChan <- fmt.Errorf("validation error: name is required")
+        } else if len(user.Name) < 2 {
+            errChan <- fmt.Errorf("validation error: name must be at least 2 characters long")
+        }
+    }()
 
-    if !s.isValidEmail(user.Email) {
-        return fmt.Errorf("validation error: invalid email format")
+    go func() {
+        defer wg.Done()
+        if user.Age <= 0 {
+            errChan <- fmt.Errorf("validation error: age must be a positive integer")
+        } else if user.Age > 150 {
+            errChan <- fmt.Errorf("validation error: age must be less than 150")
+        }
+    }()
+
+    go func() {
+        defer wg.Done()
+        if user.Email == "" {
+            errChan <- fmt.Errorf("validation error: email is required")
+        } else if !s.isValidEmail(user.Email) {
+            errChan <- fmt.Errorf("validation error: invalid email format")
+        }
+    }()
+
+    go func() {
+        wg.Wait()
+        close(errChan)
+    }()
+
+    for err := range errChan {
+        if err != nil {
+            return err
+        }
     }
 
     return nil
 }
 
-// isValidEmail checks if the given email has a valid format
 func (s *UserService) isValidEmail(email string) bool {
     re := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
     return re.MatchString(strings.ToLower(email))
 }
 
-// GetUserByIdentifier retrieves a user by ID or email
 func (s *UserService) GetUserByIdentifier(identifier string) (*models.User, error) {
     var user models.User
-    db := dao.GetDB()
+    resultChan := make(chan struct {
+        user models.User
+        err  error
+    })
 
-    if s.isValidEmail(identifier) {
-        if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
-            return nil, fmt.Errorf("user not found")
+    go func() {
+        db := dao.GetDB()
+        var err error
+
+        if s.isValidEmail(identifier) {
+            err = db.Where("email = ?", identifier).First(&user).Error
+        } else {
+            err = db.Where("id = ?", identifier).First(&user).Error
         }
-    } else {
-        if err := db.Where("id = ?", identifier).First(&user).Error; err != nil {
-            return nil, fmt.Errorf("user not found")
+
+        if err != nil {
+            err = fmt.Errorf("user not found")
         }
+
+        resultChan <- struct {
+            user models.User
+            err  error
+        }{user, err}
+    }()
+
+    result := <-resultChan
+    if result.err != nil {
+        return nil, result.err
     }
-
-    return &user, nil
+    return &result.user, nil
 }
 
-// UpdateUserByIdentifier updates a user by ID or email
 func (s *UserService) UpdateUserByIdentifier(identifier string, userUpdate *models.User) (*models.User, error) {
     var user models.User
-    db := dao.GetDB()
+    resultChan := make(chan struct {
+        user *models.User
+        err  error
+    })
 
-    if s.isValidEmail(identifier) {
-        if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
-            return nil, fmt.Errorf("user not found")
+    go func() {
+        db := dao.GetDB()
+        var err error
+
+        if s.isValidEmail(identifier) {
+            err = db.Where("email = ?", identifier).First(&user).Error
+        } else {
+            err = db.Where("id = ?", identifier).First(&user).Error
         }
-    } else {
-        if err := db.Where("id = ?", identifier).First(&user).Error; err != nil {
-            return nil, fmt.Errorf("user not found")
+
+        if err != nil {
+            resultChan <- struct {
+                user *models.User
+                err  error
+            }{nil, fmt.Errorf("user not found")}
+            return
         }
-    }
 
-    if userUpdate.Name != "" {
-        user.Name = userUpdate.Name
-    }
-    if userUpdate.Age > 0 {
-        user.Age = userUpdate.Age
-    }
-    if s.isValidEmail(userUpdate.Email) {
-        user.Email = userUpdate.Email
-    }
+        // Validate email if it's being updated
+        if userUpdate.Email != "" && userUpdate.Email != user.Email {
+            var existingUser models.User
+            if err := db.Where("email = ?", userUpdate.Email).First(&existingUser).Error; err == nil {
+                resultChan <- struct {
+                    user *models.User
+                    err  error
+                }{nil, fmt.Errorf("email already exists")}
+                return
+            }
+        }
 
-    if err := db.Save(&user).Error; err != nil {
-        return nil, fmt.Errorf("failed to update user")
-    }
+        if userUpdate.Name != "" {
+            if len(userUpdate.Name) < 2 {
+                resultChan <- struct {
+                    user *models.User
+                    err  error
+                }{nil, fmt.Errorf("validation error: name must be at least 2 characters long")}
+                return
+            }
+            user.Name = userUpdate.Name
+        }
+        if userUpdate.Age > 0 {
+            if userUpdate.Age > 150 {
+                resultChan <- struct {
+                    user *models.User
+                    err  error
+                }{nil, fmt.Errorf("validation error: age must be less than 150")}
+                return
+            }
+            user.Age = userUpdate.Age
+        }
+        if userUpdate.Email != "" && s.isValidEmail(userUpdate.Email) {
+            user.Email = userUpdate.Email
+        }
 
-    return &user, nil
+        if err := db.Save(&user).Error; err != nil {
+            resultChan <- struct {
+                user *models.User
+                err  error
+            }{nil, fmt.Errorf("failed to update user")}
+            return
+        }
+
+        resultChan <- struct {
+            user *models.User
+            err  error
+        }{&user, nil}
+    }()
+
+    result := <-resultChan
+    return result.user, result.err
 }
 
-// DeleteUserByIdentifier deletes a user by ID or email
 func (s *UserService) DeleteUserByIdentifier(identifier string) error {
-    var user models.User
-    db := dao.GetDB()
+    errChan := make(chan error)
 
-    if s.isValidEmail(identifier) {
-        if err := db.Where("email = ?", identifier).First(&user).Error; err != nil {
-            return fmt.Errorf("user not found")
+    go func() {
+        var user models.User
+        db := dao.GetDB()
+        var err error
+
+        if s.isValidEmail(identifier) {
+            err = db.Where("email = ?", identifier).First(&user).Error
+        } else {
+            err = db.Where("id = ?", identifier).First(&user).Error
         }
-    } else {
-        if err := db.Where("id = ?", identifier).First(&user).Error; err != nil {
-            return fmt.Errorf("user not found")
+
+        if err != nil {
+            errChan <- fmt.Errorf("user not found")
+            return
         }
-    }
 
-    if err := db.Delete(&user).Error; err != nil {
-        return fmt.Errorf("failed to delete user")
-    }
+        errChan <- db.Delete(&user).Error
+    }()
 
-    return nil
+    return <-errChan
 }

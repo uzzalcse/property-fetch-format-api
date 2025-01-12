@@ -1,3 +1,4 @@
+// user_get_update_delete_controller.go
 package controllers
 
 import (
@@ -15,73 +16,162 @@ type UserController struct {
     beego.Controller
 }
 
-// GetUser handles getting a user by ID or email
 func (u *UserController) GetUser() {
     identifier := u.Ctx.Input.Param(":identifier")
-
-    userService := services.UserService{}
-    user, err := userService.GetUserByIdentifier(identifier)
-    if err != nil {
+    
+    resultChan := make(chan struct {
+        user *models.User
+        err  error
+    })
+    
+    go func() {
+        userService := services.UserService{}
+        user, err := userService.GetUserByIdentifier(identifier)
+        resultChan <- struct {
+            user *models.User
+            err  error
+        }{user, err}
+    }()
+    
+    result := <-resultChan
+    if result.err != nil {
         u.Ctx.Output.SetStatus(http.StatusNotFound)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("User not found: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusNotFound,
+            "error": fmt.Sprintf("User not found: %v", result.err),
+        }
         u.ServeJSON()
         return
     }
 
-    u.Data["json"] = user
+    u.Ctx.Output.SetStatus(http.StatusOK)
+    u.Data["json"] = map[string]interface{}{
+        "status": http.StatusOK,
+        "message": "User retrieved successfully",
+        "data": result.user,
+    }
     u.ServeJSON()
 }
 
-// UpdateUser handles updating a user by ID or email
 func (u *UserController) UpdateUser() {
     identifier := u.Ctx.Input.Param(":identifier")
     var userUpdate models.User
 
-    // Read the request body
     body, err := io.ReadAll(u.Ctx.Request.Body)
     if err != nil {
         u.Ctx.Output.SetStatus(http.StatusBadRequest)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to read request body: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusBadRequest,
+            "error": fmt.Sprintf("Failed to read request body: %v", err),
+        }
         u.ServeJSON()
         return
     }
 
-    // Log the received JSON payload
-    fmt.Println("Received JSON:", string(body))
-
-    // Bind the JSON payload to the user struct
     if err := json.Unmarshal(body, &userUpdate); err != nil {
         u.Ctx.Output.SetStatus(http.StatusBadRequest)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to unmarshal JSON: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusBadRequest,
+            "error": fmt.Sprintf("Failed to unmarshal JSON: %v", err),
+        }
         u.ServeJSON()
         return
     }
 
-    userService := services.UserService{}
-    user, err := userService.UpdateUserByIdentifier(identifier, &userUpdate)
-    if err != nil {
+    if userUpdate.Name == "" && userUpdate.Age == 0 && userUpdate.Email == "" {
+        u.Ctx.Output.SetStatus(http.StatusBadRequest)
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusBadRequest,
+            "error": "At least one field must be provided for update",
+        }
+        u.ServeJSON()
+        return
+    }
+
+    resultChan := make(chan struct {
+        user *models.User
+        err  error
+    })
+
+    go func() {
+        userService := services.UserService{}
+        user, err := userService.UpdateUserByIdentifier(identifier, &userUpdate)
+        resultChan <- struct {
+            user *models.User
+            err  error
+        }{user, err}
+    }()
+
+    result := <-resultChan
+    if result.err != nil {
         u.Ctx.Output.SetStatus(http.StatusInternalServerError)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to update user: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusInternalServerError,
+            "error": fmt.Sprintf("Failed to update user: %v", result.err),
+        }
         u.ServeJSON()
         return
     }
 
-    u.Data["json"] = user
+    u.Ctx.Output.SetStatus(http.StatusOK)
+    u.Data["json"] = map[string]interface{}{
+        "status": http.StatusOK,
+        "message": "User updated successfully",
+        "data": result.user,
+    }
     u.ServeJSON()
 }
 
-// DeleteUser handles deleting a user by ID or email
 func (u *UserController) DeleteUser() {
     identifier := u.Ctx.Input.Param(":identifier")
 
-    userService := services.UserService{}
-    if err := userService.DeleteUserByIdentifier(identifier); err != nil {
-        u.Ctx.Output.SetStatus(http.StatusInternalServerError)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to delete user: %v", err)}
+    // Get user before deletion
+    userChan := make(chan struct {
+        user *models.User
+        err  error
+    })
+    
+    go func() {
+        userService := services.UserService{}
+        user, err := userService.GetUserByIdentifier(identifier)
+        userChan <- struct {
+            user *models.User
+            err  error
+        }{user, err}
+    }()
+
+    userResult := <-userChan
+    if userResult.err != nil {
+        u.Ctx.Output.SetStatus(http.StatusNotFound)
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusNotFound,
+            "error": fmt.Sprintf("User not found: %v", userResult.err),
+        }
         u.ServeJSON()
         return
     }
 
-    u.Ctx.Output.SetStatus(http.StatusNoContent)
+    errChan := make(chan error)
+    go func() {
+        userService := services.UserService{}
+        errChan <- userService.DeleteUserByIdentifier(identifier)
+    }()
+
+    if err := <-errChan; err != nil {
+        u.Ctx.Output.SetStatus(http.StatusInternalServerError)
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusInternalServerError,
+            "error": fmt.Sprintf("Failed to delete user: %v", err),
+        }
+        u.ServeJSON()
+        return
+    }
+
+    u.Ctx.Output.SetStatus(http.StatusOK)
+    u.Data["json"] = map[string]interface{}{
+        "status": http.StatusOK,
+        "message": "User deleted successfully",
+        "data": userResult.user,
+    }
     u.ServeJSON()
 }

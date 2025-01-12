@@ -1,3 +1,4 @@
+// create_user_controller.go
 package controllers
 
 import (
@@ -5,7 +6,6 @@ import (
     "fmt"
     "io"
     "net/http"
-
     "property-fetch-format-api/models"
     "property-fetch-format-api/services"
 
@@ -16,37 +16,56 @@ type CreateUserController struct {
     web.Controller
 }
 
-// CreateUser handles the creation of a new user
 func (u *CreateUserController) CreateUser() {
     var user models.User
 
-    // Read the request body
     body, err := io.ReadAll(u.Ctx.Request.Body)
     if err != nil {
         u.Ctx.Output.SetStatus(http.StatusBadRequest)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to read request body: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusBadRequest,
+            "error": fmt.Sprintf("Failed to read request body: %v", err),
+        }
         u.ServeJSON()
         return
     }
 
-    // Bind the JSON payload to the user struct
     if err := json.Unmarshal(body, &user); err != nil {
         u.Ctx.Output.SetStatus(http.StatusBadRequest)
-        u.Data["json"] = map[string]string{"error": fmt.Sprintf("Failed to unmarshal JSON: %v", err)}
+        u.Data["json"] = map[string]interface{}{
+            "status": http.StatusBadRequest,
+            "error": fmt.Sprintf("Failed to unmarshal JSON: %v", err),
+        }
         u.ServeJSON()
         return
     }
 
-    // Use the service layer to create the user
-    userService := services.UserService{}
-    if err := userService.CreateUser(&user); err != nil {
-        u.Ctx.Output.SetStatus(http.StatusInternalServerError)
-        u.Data["json"] = map[string]string{"error": err.Error()}
+    errChan := make(chan error)
+    
+    go func() {
+        userService := services.UserService{}
+        errChan <- userService.CreateUser(&user)
+    }()
+
+    if err := <-errChan; err != nil {
+        statusCode := http.StatusInternalServerError
+        if err.Error() == "email already exists" {
+            statusCode = http.StatusConflict
+        }
+        u.Ctx.Output.SetStatus(statusCode)
+        u.Data["json"] = map[string]interface{}{
+            "status": statusCode,
+            "error": err.Error(),
+        }
         u.ServeJSON()
         return
     }
 
-    // Return the created user as JSON response
-    u.Data["json"] = user
+    u.Ctx.Output.SetStatus(http.StatusCreated)
+    u.Data["json"] = map[string]interface{}{
+        "status": http.StatusCreated,
+        "message": "User created successfully",
+        "data": user,
+    }
     u.ServeJSON()
 }
