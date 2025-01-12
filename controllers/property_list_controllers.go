@@ -16,6 +16,14 @@ type PropertyListController struct {
 	beego.Controller
 }
 
+// GetPropertyList godoc
+// @Title Get Property List
+// @Description Get a list of properties based on provided property IDs
+// @Param	propertyIds	query	string	true	"Comma-separated list of property IDs"
+// @Success 200 {array} models.PropertyResponse "The property list"
+// @Failure 400 {object} map[string]string "Error message"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /properties [get]
 func (c *PropertyListController) GetPropertyList() {
 	// Get property IDs from query parameter
 	propertyIDs := c.GetString("propertyIds")

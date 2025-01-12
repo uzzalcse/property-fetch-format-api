@@ -98,6 +98,15 @@ func transformToGroupedImages(gallery *models.GalleryResponse) GroupedImages {
     return grouped
 }
 
+// @Summary Get property gallery images
+// @Description Retrieve property gallery images grouped by labels.
+// @Tags Property Gallery
+// @Param propertyId path string true "Property ID in format XX-123"
+// @Param languageCode query string false "Language code for the images" default(en)
+// @Success 200 {object} GroupedImages "Grouped images by label"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /v1/api/property/{propertyId}/gallery [get]
 func (c *PropertyGalleryController) GetPropertyGallery() {
     ctx := c.Ctx.Request.Context()
     propertyID := c.Ctx.Input.Param(":propertyId")

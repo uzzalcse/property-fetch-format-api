@@ -16,6 +16,12 @@ type UserController struct {
     beego.Controller
 }
 
+// @Title GetUser
+// @Description Retrieve user by ID or email
+// @Param identifier path string true "User ID (integer) or email (string)"
+// @Success 200 {object} models.User
+// @Failure 404 {object} map[string]interface{} "User not found"
+// @router /v1/api/user/{identifier} [get]
 func (u *UserController) GetUser() {
     identifier := u.Ctx.Input.Param(":identifier")
     
@@ -53,6 +59,14 @@ func (u *UserController) GetUser() {
     u.ServeJSON()
 }
 
+
+// @Title UpdateUser
+// @Description Update user details
+// @Param identifier path string true "User ID or email"
+// @Param body body models.User true "Updated user details"
+// @Success 200 {object} models.User
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @router /v1/api/user/{identifier} [put]
 func (u *UserController) UpdateUser() {
     identifier := u.Ctx.Input.Param(":identifier")
     var userUpdate models.User
@@ -122,6 +136,13 @@ func (u *UserController) UpdateUser() {
     u.ServeJSON()
 }
 
+
+// @Title DeleteUser
+// @Description Delete user by ID or email
+// @Param identifier path string true "User ID or email"
+// @Success 200 {object} models.User
+// @Failure 404 {object} map[string]interface{} "User not found"
+// @router /v1/api/user/{identifier} [delete]
 func (u *UserController) DeleteUser() {
     identifier := u.Ctx.Input.Param(":identifier")
 

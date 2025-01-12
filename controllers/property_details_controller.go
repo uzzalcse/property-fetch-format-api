@@ -82,6 +82,15 @@ func (s *propertyService) FetchPropertyDetails(ctx context.Context, propertyID, 
     }
 }
 
+// @Title GetPropertyDetails
+// @Description Get details of a property by its ID and language code
+// @Param   propertyId    path      string  true  "Property ID in format 'XX-1234'"
+// @Param   languageCode  query     string  false "Language code (default: en)"
+// @Success 200 {object} models.PropertyResponse "Property details response"
+// @Failure 400 {object} map[string]string "Invalid request parameters"
+// @Failure 404 {object} map[string]string "Property not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router  /v1/api/property/details/{propertyId} [get]
 func (c *PropertyDetailsController) GetPropertyDetails() {
     ctx := c.Ctx.Request.Context()
     propertyID := c.Ctx.Input.Param(":propertyId")
