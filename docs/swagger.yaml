@@ -1,0 +1,333 @@
+definitions:
+  controllers.GroupedImages:
+    additionalProperties:
+      items:
+        type: string
+      type: array
+    type: object
+  models.Category:
+    properties:
+      Display:
+        items:
+          type: string
+        type: array
+      LocationID:
+        type: string
+      Name:
+        type: string
+      Slug:
+        type: string
+      Type:
+        type: string
+    type: object
+  models.Counts:
+    properties:
+      Bathroom:
+        type: integer
+      Bedroom:
+        type: integer
+      Occupancy:
+        type: integer
+      Reviews:
+        type: integer
+    type: object
+  models.GeoInfo:
+    properties:
+      Categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      City:
+        type: string
+      Country:
+        type: string
+      CountryCode:
+        type: string
+      Display:
+        type: string
+      Lat:
+        type: string
+      Lng:
+        type: string
+      LocationID:
+        type: string
+      StateAbbr:
+        type: string
+    type: object
+  models.Image:
+    properties:
+      Count:
+        type: integer
+      Images:
+        items:
+          type: string
+        type: array
+    type: object
+  models.Partner:
+    properties:
+      Archived:
+        items:
+          type: string
+        type: array
+      BrandId:
+        type: string
+      EpCluster:
+        type: string
+      HcomID:
+        type: string
+      ID:
+        type: string
+      OwnerID:
+        type: string
+      URL:
+        type: string
+      UnitNumber:
+        type: string
+    type: object
+  models.Property:
+    properties:
+      Amenities:
+        additionalProperties:
+          type: string
+        type: object
+      Counts:
+        $ref: '#/definitions/models.Counts'
+      EcoFriendly:
+        type: boolean
+      FeatureImage:
+        type: string
+      Image:
+        $ref: '#/definitions/models.Image'
+      MinStay:
+        type: integer
+      Price:
+        type: number
+      PropertyName:
+        type: string
+      PropertySlug:
+        type: string
+      PropertyType:
+        type: string
+      PropertyTypeCategoryId:
+        type: string
+      ReviewScore:
+        type: number
+      RoomSize:
+        type: integer
+      UpdatedAt:
+        type: string
+    type: object
+  models.PropertyResponse:
+    properties:
+      Feed:
+        type: integer
+      GeoInfo:
+        $ref: '#/definitions/models.GeoInfo'
+      ID:
+        type: string
+      Partner:
+        $ref: '#/definitions/models.Partner'
+      Property:
+        $ref: '#/definitions/models.Property'
+      Published:
+        type: boolean
+    type: object
+  models.User:
+    properties:
+      age:
+        type: integer
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /properties:
+    get:
+      description: Get a list of properties based on provided property IDs
+      parameters:
+      - description: Comma-separated list of property IDs
+        in: query
+        name: propertyIds
+        required: true
+        type: string
+      responses:
+        "200":
+          description: The property list
+          schema:
+            items:
+              $ref: '#/definitions/models.PropertyResponse'
+            type: array
+        "400":
+          description: Error message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+  /v1/api/property/{propertyId}/gallery:
+    get:
+      description: Retrieve property gallery images grouped by labels.
+      parameters:
+      - description: Property ID in format XX-123
+        in: path
+        name: propertyId
+        required: true
+        type: string
+      - default: en
+        description: Language code for the images
+        in: query
+        name: languageCode
+        type: string
+      responses:
+        "200":
+          description: Grouped images by label
+          schema:
+            $ref: '#/definitions/controllers.GroupedImages'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get property gallery images
+      tags:
+      - Property Gallery
+  /v1/api/property/details/{propertyId}:
+    get:
+      description: Get details of a property by its ID and language code
+      parameters:
+      - description: Property ID in format 'XX-1234'
+        in: path
+        name: propertyId
+        required: true
+        type: string
+      - description: 'Language code (default: en)'
+        in: query
+        name: languageCode
+        type: string
+      responses:
+        "200":
+          description: Property details response
+          schema:
+            $ref: '#/definitions/models.PropertyResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Property not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+  /v1/api/user/:
+    post:
+      description: Create a new user
+      parameters:
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Email already exists
+          schema:
+            additionalProperties: true
+            type: object
+  /v1/api/user/{identifier}:
+    delete:
+      description: Delete user by ID or email
+      parameters:
+      - description: User ID or email
+        in: path
+        name: identifier
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+    get:
+      description: Retrieve user by ID or email
+      parameters:
+      - description: User ID (integer) or email (string)
+        in: path
+        name: identifier
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+    put:
+      description: Update user details
+      parameters:
+      - description: User ID or email
+        in: path
+        name: identifier
+        required: true
+        type: string
+      - description: Updated user details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties: true
+            type: object
+swagger: "2.0"

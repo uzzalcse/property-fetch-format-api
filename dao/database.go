@@ -11,7 +11,7 @@ var db *gorm.DB
 // InitDB initializes the database connection
 func InitDB() (*gorm.DB, error) {
     var err error
-    db, err = gorm.Open("postgres", "host=localhost user=postgres dbname=property_user_db sslmode=disable password=emon")
+    db, err = gorm.Open("postgres", "host=db user=postgres dbname=property_user_db sslmode=disable password=postgres")
     if err != nil {
         return nil, err
     }
