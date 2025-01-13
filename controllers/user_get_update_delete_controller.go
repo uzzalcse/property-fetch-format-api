@@ -63,7 +63,7 @@ func (u *UserController) GetUser() {
 // @Title UpdateUser
 // @Description Update user details
 // @Param identifier path string true "User ID or email"
-// @Param body body models.User true "Updated user details"
+// @Param body body models.CreateUser true "Updated user details"
 // @Success 200 {object} models.User
 // @Failure 400 {object} map[string]interface{} "Validation error"
 // @router /v1/api/user/{identifier} [put]

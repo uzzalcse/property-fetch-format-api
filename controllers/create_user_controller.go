@@ -19,8 +19,8 @@ type CreateUserController struct {
 
 // @Title CreateUser
 // @Description Create a new user
-// @Param body body models.User true "User details"
-// @Success 201 {object} models.User
+// @Param body body models.CreateUser true "User details"
+// @Success 201 {object} models.CreateUser
 // @Failure 400 {object} map[string]interface{} "Bad Request"
 // @Failure 409 {object} map[string]interface{} "Email already exists"
 // @router /v1/api/user/ [post]

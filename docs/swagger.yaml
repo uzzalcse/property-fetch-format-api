@@ -31,6 +31,15 @@ definitions:
       Reviews:
         type: integer
     type: object
+  models.CreateUser:
+    properties:
+      Age:
+        type: integer
+      Email:
+        type: string
+      Name:
+        type: string
+    type: object
   models.GeoInfo:
     properties:
       Categories:
@@ -253,12 +262,12 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.CreateUser'
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/models.CreateUser'
         "400":
           description: Bad Request
           schema:
@@ -319,7 +328,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.CreateUser'
       responses:
         "200":
           description: OK
