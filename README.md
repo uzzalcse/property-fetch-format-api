@@ -45,7 +45,7 @@ docker-compose up -d
 
 ## To interact with the apis go to the following link of `Swagger UI`
 
-http://localhost:8080/swagger/index.html/index.html
+http://localhost:8080/swagger/
 
 ## To check api using `Postman` use the following url if you didn't change the `port` in `app.conf` file.
 
