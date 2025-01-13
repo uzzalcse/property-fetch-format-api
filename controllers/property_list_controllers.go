@@ -282,5 +282,3 @@ func (c *PropertyListController) GetPropertyList() {
 	c.Data["json"] = response
 	c.ServeJSON()
 }
-
-

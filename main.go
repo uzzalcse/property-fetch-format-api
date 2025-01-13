@@ -15,4 +15,3 @@ func main() {
     defer db.Close()
 	beego.Run()
 }
-

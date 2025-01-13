@@ -1,4 +1,3 @@
-// user_get_update_delete_controller.go
 package controllers
 
 import (
@@ -58,7 +57,6 @@ func (u *UserController) GetUser() {
     }
     u.ServeJSON()
 }
-
 
 // @Title UpdateUser
 // @Description Update user details
@@ -135,7 +133,6 @@ func (u *UserController) UpdateUser() {
     }
     u.ServeJSON()
 }
-
 
 // @Title DeleteUser
 // @Description Delete user by ID or email

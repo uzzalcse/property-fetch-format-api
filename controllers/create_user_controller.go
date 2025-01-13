@@ -16,7 +16,6 @@ type CreateUserController struct {
     web.Controller
 }
 
-
 // @Title CreateUser
 // @Description Create a new user
 // @Param body body models.CreateUser true "User details"
